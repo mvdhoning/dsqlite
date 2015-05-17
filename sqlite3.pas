@@ -91,6 +91,8 @@ type
   TCollateXCompare = function(UserData: pointer; Buf1Len: integer; Buf1: pointer; Buf2Len: integer; Buf2: pointer): integer; cdecl;
 
 var
+  SQLite3_Null : pchar = nil;
+
   SQLite3_Open : function (filename: PAnsiChar; var db: PSQLite3): integer; cdecl;
   SQLite3_Open16 : function (filename: PChar; var db: PSQLite3): integer; cdecl;
   SQLite3_Close : function (db: PSQLite3): integer; cdecl;
@@ -146,6 +148,8 @@ var
   SQLite3_Enable_Shared_Cache : function (Value: integer): integer; cdecl;
   SQLite3_Create_Collation : function (db: PSQLite3; Name: PAnsiChar; eTextRep: integer; UserData: pointer; xCompare: TCollateXCompare): integer; cdecl;
   SQLite3_Create_Collation16 : function (db: PSQLite3; Name: PChar; eTextRep: integer; UserData: pointer; xCompare: TCollateXCompare): integer; cdecl;
+
+  procedure SQLite3_Dispose_Pointer(ptr: pointer); cdecl;
 
 implementation
 
@@ -342,6 +346,12 @@ end;
 function isSqlite3Loaded: boolean;
 begin
   Result := Sqlite3Handle <> INVALID_MODULE_HANDLE;
+end;
+
+procedure SQLite3_Dispose_Pointer(ptr: pointer); cdecl;
+begin
+  if assigned(ptr) then
+    freemem(ptr);
 end;
 
 end.

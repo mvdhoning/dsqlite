@@ -22,17 +22,8 @@ type
     property Db: PSqlite3 read fdb write fdb;
     property Guid: string read fguid write fguid;
   end;
-  
-procedure DisposePointer(ptr: pointer); cdecl;
 
 implementation
-
-//TODO: find a way to not need this
-procedure DisposePointer(ptr: pointer); cdecl;
-begin
-  if assigned(ptr) then
-    freemem(ptr);
-end;
 
 //prepare the database for this class if not already done so
 procedure TModel.Init();
@@ -57,17 +48,17 @@ var
   Sql: string;
   Stmt: PSQLite3Stmt;
   iStepResult: integer;
-  test: pchar;
 
 begin
-  test:=nil;
+
+  Stmt := nil;
   Sql := 'DELETE FROM '+ftablename+' WHERE "uuid" == ?;';
   writeln(Sql);
 
   { Call the query }
   try
 
-    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, test) <>
+    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, SQLite3_Null) <>
       SQLITE_OK then
       WriteLn('Could not prepare SQL statement'+ SQL);
 
@@ -106,9 +97,8 @@ var
   iSize: integer;
   ptr: pointer;
   aguid: tguid;
-  test: pchar;
 begin
-    test:=nil;
+
   //save the record to a stream
   AStream := TMemoryStream.Create();
   AStream.writecomponent(self);
@@ -120,12 +110,14 @@ begin
     Sql := 'UPDATE '+ftablename+' SET "data" = ? WHERE "uuid" = ?';
   
   writeln(Sql);
-  
+
+  Stmt:=nil;
+
   //call the query with parameters
   try
 
     //prepare the query so that parameter can be bound to it
-    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, test) <>
+    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, SQLite3_Null) <>
       SQLITE_OK then
       WriteLn('Could not prepare SQL statement'+ SQL);
 
@@ -148,7 +140,7 @@ begin
       Writeln('Leeg');
     AStream.position := 0;
     AStream.Read(ptr^, iSize);
-    iBindResult := SQLite3_Bind_Blob(stmt, 1, ptr, iSize, @DisposePointer);
+    iBindResult := SQLite3_Bind_Blob(stmt, 1, ptr, iSize, @SQLite3_Dispose_Pointer); //have sqlite3 dispose the pointer as soon as it is done with it
     if iBindResult <> SQLITE_OK then
       WriteLn('Error binding blob to database'+ SQL);
 
@@ -190,16 +182,18 @@ var
   iSize: integer;
   ptr: pointer;
   tempmodel: TModel;
-  test: pchar;
+
 begin
-    test:=nil;
+
+  Stmt := nil;
+
   result := TList.Create();
                   
   sql := 'SELECT * FROM '+ftablename+';';
   
   try
   
-    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, test) <>
+    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, SQLite3_Null) <>
       SQLITE_OK then
       WriteLn('Could not prepare SQL statement'+ SQL);
 
