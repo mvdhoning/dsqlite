@@ -1,6 +1,9 @@
 {$mode objfpc}{$h+}{$M+}
 unit mydbmod;
 
+// Any copyright is dedicated to the Public Domain.
+// http://creativecommons.org/publicdomain/zero/1.0/
+
 interface
 
 uses classes, model;
