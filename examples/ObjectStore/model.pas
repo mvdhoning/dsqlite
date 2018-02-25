@@ -163,17 +163,28 @@ begin
       Sqlite3_Finalize(stmt);
       
   end;
-    
+
+  freeAndNil(AStream);
+
 end;
 
 //retrieve the first object
 function TModel.FindOne(): TModel;
 var
   found: TList;
+  i: integer;
 begin
   found:= Find();
   result := TModel(found[0]); //get the first result
-  found.free; //clean up and free some memory
+  for i:=found.count-1 downto 1 do
+  begin
+    TModel(found[i]).free;
+    found[i]:=nil;
+    found.Delete(i);
+  end;
+  //the caller of findone should free the result
+  found.Delete(0);
+  freeAndNil(found); //clean up and free some memory
 end;
 
 //retrieve objects from database

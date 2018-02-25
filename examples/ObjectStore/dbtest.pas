@@ -16,6 +16,16 @@ var
   i: integer; //just another counter
 begin
 
+  {$IFDEF DEBUG}
+  // Assuming your build mode sets -dDEBUG in Project Options/Other when defining -gh
+  // This avoids interference when running a production/default build without -gh
+
+  // Set up -gh output for the Leakview package:
+  if FileExists('heap.trc') then
+     DeleteFile('heap.trc');
+  SetHeapTraceOutput('heap.trc');
+  {$ENDIF DEBUG}
+
   LoadSQLite3(); //dynamicly load sqlite3 lib
   //open a database connection
   //TODO: should be added to TModel
@@ -33,18 +43,18 @@ begin
   mydata.Id := 1;
   mydata.Name := 'hallo wereld';
   mydata.save(); //persist it in the database
-  
+
   //search first record
   founddata := mydata.findone() as TMyData;
   writeln(founddata.Name);
-  
+
   //change the contents
   founddata.name := 'xx hello :-)'; 
   founddata.save(); //and save it again
   
   //change the contents again but dont persist it
   founddata.name := 'zz'; //so this change will be lost
-  
+
   //retrieve all records
   resultdata := mydata.find(); //TODO: add filters to find specific records
 
@@ -54,6 +64,8 @@ begin
   
   //remove record from database
   TMyData(resultdata[5]).Delete(); //first we delete the item from the database
+  TmyData(resultdata[5]).Free;
+  resultdata[5]:=nil;
   resultdata.delete(5); //next we delete the item from the list
   resultdata.pack(); //and we clean up the list
 
@@ -62,16 +74,26 @@ begin
   //browse again trough the results now that one has been removed
   for i:=0 to resultdata.count-1 do
     writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);  
-  
-  //clean up memory
-  resultdata.free;
-  founddata.free;
-  mydata.free;
-   
+
+
   //close the db connection
   //TODO: should be added to TModel
   sqlite3_close(Db);
 
   UnLoadSQLite3(); //unload dynamic loaded sqlite3 lib
+
+  //clean up memory
+  for i:=resultdata.Count-1 downto 0 do
+    begin
+      TModel(resultdata[i]).Free();
+      resultdata[i]:=nil;
+      resultdata.Delete(i);
+    end;
+  freeAndNil(resultdata);
+
+  freeAndNil(founddata);
+
+  freeAndNil(mydata);
+
   readln();
 end.
