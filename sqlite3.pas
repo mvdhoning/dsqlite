@@ -151,6 +151,10 @@ var
   SQLite3_Enable_Shared_Cache : function (Value: integer): integer; cdecl;
   SQLite3_Create_Collation : function (db: PSQLite3; Name: PAnsiChar; eTextRep: integer; UserData: pointer; xCompare: TCollateXCompare): integer; cdecl;
   SQLite3_Create_Collation16 : function (db: PSQLite3; Name: PChar; eTextRep: integer; UserData: pointer; xCompare: TCollateXCompare): integer; cdecl;
+  //encryption extension support
+  SQLite3_Key: function(db: PSQLite3; key: pchar; len: integer): integer; cdecl;
+  SQLite3_ReKey: function(db: PSQLite3; key: pchar; len: integer): integer; cdecl;
+  //end encryption extension support
 
   procedure SQLite3_Dispose_Pointer(ptr: pointer); cdecl;
 
@@ -252,6 +256,10 @@ begin
   SQLite3_Enable_Shared_Cache := nil;
   SQLite3_Create_Collation := nil;
   SQLite3_Create_Collation16 := nil;
+  //encryption extension support
+  SQLite3_Key := nil;
+  SQLite3_ReKey := nil;
+  //end encryption extension support
 end;
 
 procedure LoadSqlite3Proc;
@@ -314,6 +322,10 @@ begin
     SQLite3_Enable_Shared_Cache := GetProcAddress(Sqlite3Handle, 'sqlite3_enable_shared_cache');
     SQLite3_Create_Collation := GetProcAddress(Sqlite3Handle, 'sqlite3_create_collation');
     SQLite3_Create_Collation16 := GetProcAddress(Sqlite3Handle, 'sqlite3_create_collation');
+    //encryption extension support
+    SQLite3_Key := GetProcAddress(Sqlite3Handle,'sqlite3_key');
+    SQLite3_ReKey := GetProcAddress(Sqlite3Handle,'sqlite3_rekey');
+    //end encrytpion extension support
   end;
 end;
 

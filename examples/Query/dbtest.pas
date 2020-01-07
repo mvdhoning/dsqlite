@@ -54,6 +54,10 @@ begin
     writeln(Format('Can''t open database: %s',[DBFILE]));
    end;
 
+   writeln('set encryption');
+   sqlite3_key(db,'test', 4); //encryption support
+
+   (*
    writeln('drop table test');
    sql:= 'DROP TABLE Test;';
    rc:=sqlite3_exec(db, PChar(sql), @MyCallback, nil, @pzErrMsg);
@@ -93,6 +97,7 @@ begin
    Writeln('Inserting row') ;
    if( rc<>SQLITE_OK )
    then writeln(Format('SQL error: %s', [pzErrMsg^]));
+   *)
 
    writeln('select table test');
    SQL := 'select * from Test;';
