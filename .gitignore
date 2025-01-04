@@ -24,6 +24,7 @@ Textures/
 #exclude Lazarus Project Session file
 *.lps
 *.ctps
+*.lpi
 
 #exclude sqlite databases
 *.db
