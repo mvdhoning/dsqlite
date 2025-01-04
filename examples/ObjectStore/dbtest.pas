@@ -63,12 +63,14 @@ begin
     writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
   
   //remove record from database
-  TMyData(resultdata[5]).Delete(); //first we delete the item from the database
-  TmyData(resultdata[5]).Free;
-  resultdata[5]:=nil;
-  resultdata.delete(5); //next we delete the item from the list
-  resultdata.pack(); //and we clean up the list
-
+  if resultdata.count>5 then
+     begin
+      TMyData(resultdata[5]).Delete(); //first we delete the item from the database
+      TmyData(resultdata[5]).Free;
+      resultdata[5]:=nil;
+      resultdata.delete(5); //next we delete the item from the list
+      resultdata.pack(); //and we clean up the list
+     end;
   //resultdata.components.add(founddata); //nah this cannot work
 
   //browse again trough the results now that one has been removed

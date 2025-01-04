@@ -35,7 +35,7 @@ var
   Sql: String;
 begin
   //create a table
-  Sql := 'CREATE TABLE IF NOT EXISTS '+ftablename+' ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "uuid" TEXT NOT NULL, "data" BLOB NOT NULL);';
+  Sql := 'CREATE TABLE IF NOT EXISTS '+ftablename+' ("uuid" TEXT PRIMARY KEY, "data" BLOB NOT NULL);';
   sqlite3_exec(db,pchar(Sql),nil,nil,nil);
 
   //create a unique index
@@ -228,13 +228,13 @@ begin
     begin
       //retrieve the blob from the database and make an object from it
       AStream := TMemoryStream.Create();
-      ptr := sqlite3_column_blob(stmt, 2);
-      iSize := sqlite3_column_bytes(Stmt, 2);
+      ptr := sqlite3_column_blob(stmt, 1);
+      iSize := sqlite3_column_bytes(Stmt, 1);
       AStream.Write(ptr^,iSize);
       AStream.position := 0;
       //enrich the 'new' model with metadata      
       tempmodel := AStream.readcomponent(nil) as tmodel;
-      tempmodel.guid := Sqlite3_column_Text(stmt, 1);
+      tempmodel.guid := Sqlite3_column_Text(stmt, 0);
       tempmodel.TableName := self.tablename;
       tempmodel.Db := self.fdb;
       //add the object to the results      
