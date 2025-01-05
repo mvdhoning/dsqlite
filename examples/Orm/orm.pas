@@ -21,6 +21,8 @@ type
     destructor Destroy(); override;
     procedure Add(aClass: TClass);
     procedure Save(aModel: TModel);
+    function FindOne(aClass: TClass): Tmodel;
+    function Find(aClass: TClass): TList;
     property DatabaseName: string read fdatabasename write fdatabasename;
   end;
 
@@ -93,25 +95,18 @@ end;
 procedure TOrm.Save(aModel: TModel);
 var
   Sql: String;
-  AStream: TMemoryStream;
   Stmt: PSQLite3Stmt;
   iStepResult: integer;
-  iBindResult: integer;
-  iSize: integer;
-  ptr: pointer;
   aguid: tguid;
   PropCount: integer;
   PropList: PPropList;
   PropInfo: PPropInfo;
-  PropData: PPropData;
   FieldList: String;
   CommaList: String;
   Name: String;
   i: integer;
 begin
-  //save the record to a stream
-  AStream := TMemoryStream.Create();
-  AStream.writecomponent(aModel);
+  //save the record to a record in sqlite table
 
   FieldList:='';
   CommaList:='';
@@ -140,10 +135,10 @@ begin
         PropInfo := PropList^[i];
         if PropInfo^.Name <> 'Tag' then //do nothing with Tag
           begin
-            FieldList:=FieldList+', "'+PropInfo^.Name+' = :'+PropInfo^.Name+'" ';
+            FieldList:=FieldList+', "'+PropInfo^.Name+'" = :'+PropInfo^.Name+' ';
           end;
       end;
-    delete(FieldList, 0, 2);
+    delete(FieldList, 1, 2);
     Sql := 'UPDATE '+aModel.ClassName+' SET '+FieldList+' WHERE "uuid" = :guid';
   end;
 
@@ -169,6 +164,7 @@ begin
 
     //bind the fields
     PropCount := GetPropList(aModel, PropList);
+
     For i := 0 to PropCount -1 do
       begin;
 
@@ -186,6 +182,7 @@ begin
               tkQWord,
               tkUChar: sqlite3_bind_int(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), GetPropValue(AModel,PropInfo^.Name) );
               tkInt64: sqlite3_bind_int64(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), GetPropValue(AModel,PropInfo^.Name) );
+              tkFloat: sqlite3_bind_double(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), GetPropValue(AModel,PropInfo^.Name) );
               tkSString,
               tkLString,
               tkAstring: sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), pchar(vartostr(GetPropValue(AModel,PropInfo^.Name))), Length(GetPropValue(AModel,PropInfo^.Name)), nil);
@@ -209,8 +206,114 @@ begin
 
   end;
 
-  freeAndNil(AStream);
+end;
 
+//retrieve the first object
+function TOrm.FindOne(aClass: TClass): TModel;
+var
+  found: TList;
+  i: integer;
+begin
+  found:= Find(aClass);
+  result := TModel(found[0]); //get the first result
+  for i:=found.count-1 downto 1 do
+  begin
+    TModel(found[i]).free;
+    found[i]:=nil;
+    found.Delete(i);
+  end;
+  //the caller of findone should free the result
+  found.Delete(0);
+  freeAndNil(found); //clean up and free some memory
+end;
+
+//retrieve objects from database
+function TOrm.Find(aClass: TClass): TList;
+var
+  sql: string;
+  Stmt: PSQLite3Stmt;
+  iStepResult: integer;
+  tempmodel: TModel;
+  PropCount: integer;
+  PropList:  PPropList;
+  PropInfo:  PPropInfo;
+  i: integer;
+    NumColumns: integer;
+  c: integer;
+begin
+
+  Stmt := nil;
+
+  result := TList.Create();
+
+  sql := 'SELECT * FROM '+aClass.ClassName+';';
+
+  try
+
+    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, SQLite3_Null) <>
+      SQLITE_OK then
+      WriteLn('Could not prepare SQL statement'+ SQL);
+
+    if (Stmt = nil) then
+      WriteLn('Could not prepare SQL statement'+ SQL);
+
+    iStepResult := Sqlite3_step(Stmt);
+
+    while iStepResult = SQLITE_ROW do
+    begin
+
+    if ((iStepResult <> SQLITE_DONE) and (iStepResult <> SQLITE_ROW)) then
+    begin
+      SQLite3_reset(stmt);
+      WriteLn('Error executing SQL statement: '+ SQL);
+    end else
+    begin
+      //TODO: retrieve fields
+        NumColumns := sqlite3_column_count(stmt);
+        tempmodel:=TModelType(GetClass(aClass.ClassName)).Create(nil);
+        tempmodel.Guid:=Sqlite3_column_Text(stmt, 0);
+
+        PropCount := GetPropList(aClass, PropList);
+        For c := 0 to NumColumns -1 do
+        For i := 0 to PropCount -1 do
+        begin;
+          PropInfo := PropList^[i];
+          if PropInfo^.Name <> 'Tag' then //do nothing with Tag
+            begin
+              Sql:=Sql+', "'+PropInfo^.Name+'" ';
+              case PropInfo^.PropType^.Kind of
+                tkInteger,
+                tkEnumeration,
+                tkSet,
+                tkChar,
+                tkWChar,
+                tkBool,
+                tkQWord,
+                tkUChar: if sqlite3_column_name(stmt,c)=PropInfo^.Name then SetPropValue(tempmodel, PropInfo,sqlite3_column_int(stmt, c));
+                tkInt64: if sqlite3_column_name(stmt,c)=PropInfo^.Name then SetPropValue(tempmodel, PropInfo,sqlite3_column_int64(stmt, c));
+                tkFloat: if sqlite3_column_name(stmt,c)=PropInfo^.Name then SetPropValue(tempmodel, PropInfo,sqlite3_column_double(stmt, c));
+                tkSString,
+                tkLString,
+                tkAString,
+                tkWString,
+                tkUString: if sqlite3_column_name(stmt,c)=PropInfo^.Name then SetPropValue(tempmodel, PropInfo, sqlite3_column_text(stmt, c));
+              end;
+              Sql:=Sql+' NOT NULL' //hardcoded should contain data
+            end;
+        end;
+
+
+      result.Add(tempmodel);
+    end;
+    iStepResult := Sqlite3_step(Stmt);
+    end;
+
+  finally
+
+    if Assigned(Stmt) then
+      Sqlite3_Finalize(stmt);
+
+  end;
 end;
 
 end.

@@ -34,10 +34,6 @@ begin
   writeln('Add model TMyData');
   myOrm.Add(TMyData);
   mydata := TMyData.Create(nil);
-  
-  //prepare
-  mydata.TableName := 'mydata'; //specify a tablename (could this be classname?)
-  //mydata.init(); //prepare database if not already done yet
 
   //make record
   mydata.Id := 1;
@@ -46,22 +42,22 @@ begin
   writeln('Saved myData');
 
   //search first record
-  //founddata := mydata.findone() as TMyData;
-  //writeln(founddata.Name);
+  founddata := myOrm.findone(TMyData) as TMyData;
+  writeln(founddata.Name);
 
   //change the contents
-  //founddata.name := 'xx hello :-)'; 
-  //founddata.save(); //and save it again
+  founddata.name := 'xx hello :-)';
+  myOrm.save(founddata); //and save it again
   
   //change the contents again but dont persist it
-  //founddata.name := 'zz'; //so this change will be lost
+  founddata.name := 'zz'; //so this change will be lost
 
   //retrieve all records
-  //resultdata := mydata.find(); //TODO: add filters to find specific records
+  resultdata := myOrm.find(TMyData); //TODO: add filters to find specific records
 
   //browse trough the results
-  //for i:=0 to resultdata.count-1 do
-  //  writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
+  for i:=0 to resultdata.count-1 do
+    writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
   
   //remove record from database
   //if resultdata.count>5 then

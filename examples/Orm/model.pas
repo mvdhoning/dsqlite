@@ -13,12 +13,12 @@ type
   
   TModel = class(TComponent)
   private
-    ftablename: string;
     fguid: string;
   public
-    property TableName: String read ftablename write ftablename;
     property Guid: string read fguid write fguid;
   end;
+
+  TModelType = class of TModel;
 
 implementation
 
