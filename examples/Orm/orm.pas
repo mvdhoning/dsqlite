@@ -20,6 +20,7 @@ type
     constructor Create(adatabasename: string);
     destructor Destroy(); override;
     procedure Add(aClass: TClass);
+    procedure Delete(aModel: Tmodel);
     procedure Save(aModel: TModel);
     function FindOne(aClass: TClass): Tmodel;
     function Find(aClass: TClass): TList;
@@ -91,6 +92,49 @@ begin
   sqlite3_exec(fdb,pchar(Sql),nil,nil,nil);
 end;
 
+//remove the current object from the database
+procedure TOrm.Delete(aModel: Tmodel);
+var
+  Sql: string;
+  Stmt: PSQLite3Stmt;
+  iStepResult: integer;
+
+begin
+
+  Stmt := nil;
+  Sql := 'DELETE FROM '+aModel.ClassName+' WHERE "uuid" == ?;';
+  writeln(Sql);
+
+  { Call the query }
+  try
+
+    if Sqlite3_Prepare_v2(self.fDB, PAnsiChar(SQL), -1, Stmt, SQLite3_Null) <>
+      SQLITE_OK then
+      WriteLn('Could not prepare SQL statement'+ SQL);
+
+    if (Stmt = nil) then
+      WriteLn('Could not prepare SQL statement'+ SQL);
+
+    sqlite3_bind_text(stmt, 1, PAnsiChar(aModel.Guid), Length(aModel.Guid), nil);
+
+    iStepResult := Sqlite3_step(Stmt);
+
+    if (iStepResult <> SQLITE_DONE) then
+      begin
+      SQLite3_reset(stmt);
+      WriteLn('Error executing SQL statement: '+ SQL);
+      end;
+
+  finally
+
+    if Assigned(Stmt) then
+      Sqlite3_Finalize(stmt);
+
+  end;
+
+
+end;
+
 //persist the current object to the database
 procedure TOrm.Save(aModel: TModel);
 var
@@ -138,7 +182,7 @@ begin
             FieldList:=FieldList+', "'+PropInfo^.Name+'" = :'+PropInfo^.Name+' ';
           end;
       end;
-    delete(FieldList, 1, 2);
+    system.delete(FieldList, 1, 2);
     Sql := 'UPDATE '+aModel.ClassName+' SET '+FieldList+' WHERE "uuid" = :guid';
   end;
 
@@ -208,7 +252,7 @@ begin
 
 end;
 
-//retrieve the first object
+//retrieve the first record from the database
 function TOrm.FindOne(aClass: TClass): TModel;
 var
   found: TList;
@@ -227,7 +271,7 @@ begin
   freeAndNil(found); //clean up and free some memory
 end;
 
-//retrieve objects from database
+//retrieve records from database
 function TOrm.Find(aClass: TClass): TList;
 var
   sql: string;

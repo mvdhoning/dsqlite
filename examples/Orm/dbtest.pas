@@ -60,31 +60,30 @@ begin
     writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
   
   //remove record from database
-  //if resultdata.count>5 then
-  //   begin
-  //    TMyData(resultdata[5]).Delete(); //first we delete the item from the database
-  //    TmyData(resultdata[5]).Free;
-  //    resultdata[5]:=nil;
-  //    resultdata.delete(5); //next we delete the item from the list
-  //    resultdata.pack(); //and we clean up the list
-  //   end;
-  //resultdata.components.add(founddata); //nah this cannot work
+  if resultdata.count>5 then
+     begin
+      myOrm.Delete(TMyData(resultdata[5]));//first we delete the item from the database
+      TmyData(resultdata[5]).Free;
+      resultdata[5]:=nil;
+      resultdata.delete(5); //next we delete the item from the list
+      resultdata.pack(); //and we clean up the list
+     end;
 
   //browse again trough the results now that one has been removed
-  //for i:=0 to resultdata.count-1 do
-  //  writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);  
+  for i:=0 to resultdata.count-1 do
+    writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
 
   myOrm.Free;
 
   UnLoadSQLite3(); //unload dynamic loaded sqlite3 lib
 
   //clean up memory
-  //for i:=resultdata.Count-1 downto 0 do
-  //  begin
-  //    TModel(resultdata[i]).Free();
-  //    resultdata[i]:=nil;
-  //    resultdata.Delete(i);
-  //  end;
+  for i:=resultdata.Count-1 downto 0 do
+    begin
+      TModel(resultdata[i]).Free();
+      resultdata[i]:=nil;
+      resultdata.Delete(i);
+    end;
   freeAndNil(resultdata);
 
   freeAndNil(founddata);
