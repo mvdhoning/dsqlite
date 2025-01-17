@@ -34,6 +34,7 @@ type
       ftext: String;
       fauthor: TAuthor;
     public
+      Destructor Destroy(); override;
     published
       property Title: String read ftitle write ftitle;
       property Text: String read ftext write ftext;
@@ -41,6 +42,16 @@ type
     end;
 
 implementation
+
+uses SysUtils;
+
+Destructor TNote.Destroy();
+begin
+  FreeAndNil(fauthor);
+  inherited;
+end;
+
+
 
 initialization
 RegisterClass(TMyData);

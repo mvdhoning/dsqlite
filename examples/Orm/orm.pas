@@ -85,6 +85,7 @@ begin
         Sql:=Sql+' NOT NULL' //hardcoded should contain data
       end;
   end;
+  FreeMem(PropList);
   Sql := Sql + ');';
   sqlite3_exec(fdb,pchar(Sql),nil,nil,nil);
 
@@ -104,7 +105,6 @@ begin
 
   Stmt := nil;
   Sql := 'DELETE FROM '+aModel.ClassName+' WHERE "uuid" == ?;';
-  writeln(Sql);
 
   { Call the query }
   try
@@ -170,6 +170,7 @@ begin
             CommaList:=CommaList+', :'+PropInfo^.Name;
           end;
       end;
+    FreeMem(PropList);
     Sql := 'INSERT INTO '+aModel.ClassName+' ("uuid"'+FieldList+') VALUES (:guid'+CommaList+');'
   end
   else
@@ -183,6 +184,7 @@ begin
             FieldList:=FieldList+', "'+PropInfo^.Name+'" = :'+PropInfo^.Name+' ';
           end;
       end;
+    FreeMem(PropList);
     system.delete(FieldList, 1, 2);
     Sql := 'UPDATE '+aModel.ClassName+' SET '+FieldList+' WHERE "uuid" = :guid';
   end;
@@ -235,7 +237,7 @@ begin
             end;
           end;
       end;
-
+    FreeMem(PropList);
     //execute the query with bound parameters
     iStepResult := Sqlite3_step(Stmt);
 
@@ -363,13 +365,15 @@ begin
                     oid := sqlite3_column_text(stmt, c);
                     found :=Find(GetClass(PropInfo^.PropType^.Name),oid);
                     SetObjectProp(tempModel,PropInfo^.Name,Tmodel(found[0]));
+                    found.Delete(0);
+                    freeAndNil(found);
                 end;
               end;
               Sql:=Sql+' NOT NULL' //hardcoded should contain data
             end;
         end;
 
-
+      FreeMem(PropList);
       result.Add(tempmodel);
     end;
     iStepResult := Sqlite3_step(Stmt);

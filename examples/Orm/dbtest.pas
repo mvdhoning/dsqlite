@@ -39,11 +39,9 @@ begin
 
   writeln('Add model TAuthor');
   myOrm.Add(TAuthor);
-  myauthor := TAuthor.Create();
 
   writeln('Add model TNote');
   myOrm.Add(TNote);
-  mynote := TNote.Create();
 
   //make mydata record
   mydata := TMyData.Create();
@@ -103,6 +101,9 @@ begin
   writeln(readNote.Title);
   writeln(readNote.Author.Name);
 
+  myOrm.Delete(myNote);
+  myOrm.Delete(myAuthor);
+
   myOrm.Free;
 
   UnLoadSQLite3(); //unload dynamic loaded sqlite3 lib
@@ -120,8 +121,11 @@ begin
 
   freeAndNil(mydata);
 
-  freeAndNil(mynote);
+  freeAndNil(readnote);
+
   freeAndNil(myauthor);
+  myNote.Author:=nil; //should not this be nil by freeandnil on myauthor?
+  freeAndNil(mynote);
 
   readln();
 end.
