@@ -23,7 +23,7 @@ type
     procedure Delete(aModel: Tmodel);
     procedure Save(aModel: TModel);
     function FindOne(aClass: TClass): Tmodel;
-    function Find(aClass: TClass): TList;
+    function Find(aClass: TClass; aId: String): TList;
     property DatabaseName: string read fdatabasename write fdatabasename;
   end;
 
@@ -80,10 +80,12 @@ begin
           tkAString,
           tkWString,
           tkUString: Sql:=Sql+'TEXT';
+          tkClass: Sql:=Sql+'TEXT';
         end;
         Sql:=Sql+' NOT NULL' //hardcoded should contain data
       end;
   end;
+  FreeMem(PropList);
   Sql := Sql + ');';
   sqlite3_exec(fdb,pchar(Sql),nil,nil,nil);
 
@@ -103,7 +105,6 @@ begin
 
   Stmt := nil;
   Sql := 'DELETE FROM '+aModel.ClassName+' WHERE "uuid" == ?;';
-  writeln(Sql);
 
   { Call the query }
   try
@@ -169,6 +170,7 @@ begin
             CommaList:=CommaList+', :'+PropInfo^.Name;
           end;
       end;
+    FreeMem(PropList);
     Sql := 'INSERT INTO '+aModel.ClassName+' ("uuid"'+FieldList+') VALUES (:guid'+CommaList+');'
   end
   else
@@ -182,6 +184,7 @@ begin
             FieldList:=FieldList+', "'+PropInfo^.Name+'" = :'+PropInfo^.Name+' ';
           end;
       end;
+    FreeMem(PropList);
     system.delete(FieldList, 1, 2);
     Sql := 'UPDATE '+aModel.ClassName+' SET '+FieldList+' WHERE "uuid" = :guid';
   end;
@@ -230,10 +233,11 @@ begin
               tkSString,
               tkLString,
               tkAstring: sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), pchar(vartostr(GetPropValue(AModel,PropInfo^.Name))), Length(GetPropValue(AModel,PropInfo^.Name)), nil);
+              tkClass: sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, pansichar(Name)), pchar(TModel(GetObjectProp(AModel,PropInfo^.Name)).Guid) , length(TModel(GetObjectProp(AModel,PropInfo^.Name)).Guid), nil);
             end;
           end;
       end;
-
+    FreeMem(PropList);
     //execute the query with bound parameters
     iStepResult := Sqlite3_step(Stmt);
 
@@ -258,7 +262,7 @@ var
   found: TList;
   i: integer;
 begin
-  found:= Find(aClass);
+  found:= Find(aClass, '');
   result := TModel(found[0]); //get the first result
   for i:=found.count-1 downto 1 do
   begin
@@ -272,7 +276,10 @@ begin
 end;
 
 //retrieve records from database
-function TOrm.Find(aClass: TClass): TList;
+
+
+
+function TOrm.Find(aClass: TClass; aId: String): TList;
 var
   sql: string;
   Stmt: PSQLite3Stmt;
@@ -284,13 +291,20 @@ var
   i: integer;
     NumColumns: integer;
   c: integer;
+  oid: string;
+  found: TList;
 begin
 
   Stmt := nil;
 
   result := TList.Create();
 
-  sql := 'SELECT * FROM '+aClass.ClassName+';';
+  sql := 'SELECT * FROM '+aClass.ClassName;
+  if aId<>'' then
+    begin
+      sql:=sql+' WHERE "uuid" = :guid';
+    end;
+  sql:=sql+' ;';
 
   try
 
@@ -300,6 +314,11 @@ begin
 
     if (Stmt = nil) then
       WriteLn('Could not prepare SQL statement'+ SQL);
+
+    if aId<>'' then
+      begin
+      sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ':guid'), PAnsiChar(aId), Length(aId), nil);
+      end;
 
     iStepResult := Sqlite3_step(Stmt);
 
@@ -314,7 +333,7 @@ begin
     begin
       //TODO: retrieve fields
         NumColumns := sqlite3_column_count(stmt);
-        tempmodel:=TModelType(GetClass(aClass.ClassName)).Create(nil);
+        tempmodel:=TModelType(GetClass(aClass.ClassName)).Create();
         tempmodel.Guid:=Sqlite3_column_Text(stmt, 0);
 
         PropCount := GetPropList(aClass, PropList);
@@ -341,12 +360,20 @@ begin
                 tkAString,
                 tkWString,
                 tkUString: if sqlite3_column_name(stmt,c)=PropInfo^.Name then SetPropValue(tempmodel, PropInfo, sqlite3_column_text(stmt, c));
+                tkClass: if sqlite3_column_name(stmt,c)=PropInfo^.Name then
+                  begin
+                    oid := sqlite3_column_text(stmt, c);
+                    found :=Find(GetClass(PropInfo^.PropType^.Name),oid);
+                    SetObjectProp(tempModel,PropInfo^.Name,Tmodel(found[0]));
+                    found.Delete(0);
+                    freeAndNil(found);
+                end;
               end;
               Sql:=Sql+' NOT NULL' //hardcoded should contain data
             end;
         end;
 
-
+      FreeMem(PropList);
       result.Add(tempmodel);
     end;
     iStepResult := Sqlite3_step(Stmt);

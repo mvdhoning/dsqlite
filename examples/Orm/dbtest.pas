@@ -10,6 +10,9 @@ var
   mydata: TMyData; //the persistable object inherits from TModel
   founddata: TMyData; //a single retrieved object from the database
   resultdata: TList; //should this be a TList specific for TModel?
+  mynote: TNote;
+  readnote: TNote;
+  myauthor: TAuthor;
   i: integer; //just another counter
   myOrm : Torm;
 begin
@@ -33,13 +36,34 @@ begin
 
   writeln('Add model TMyData');
   myOrm.Add(TMyData);
-  mydata := TMyData.Create(nil);
 
-  //make record
+  writeln('Add model TAuthor');
+  myOrm.Add(TAuthor);
+
+  writeln('Add model TNote');
+  myOrm.Add(TNote);
+
+  //make mydata record
+  mydata := TMyData.Create();
   mydata.Id := 1;
   mydata.Name := 'hallo wereld';
   myOrm.save(myData); //persist it in the database
   writeln('Saved myData');
+
+  //make myauthor record
+  myauthor := TAuthor.Create();
+  myauthor.Name := 'John Doe';
+  myOrm.save(myauthor); //persist it in the database
+  writeln('Saved myauthor');
+
+  //make mynote record
+  mynote := TNote.Create();
+  mynote.Title := 'Hello World';
+  mynote.Text := 'Hello World this is John Doe writing.';
+  mynote.Author:=myAuthor;
+  myOrm.save(mynote); //persist it in the database
+  writeln('Saved mynote');
+
 
   //search first record
   founddata := myOrm.findone(TMyData) as TMyData;
@@ -53,7 +77,7 @@ begin
   founddata.name := 'zz'; //so this change will be lost
 
   //retrieve all records
-  resultdata := myOrm.find(TMyData); //TODO: add filters to find specific records
+  resultdata := myOrm.find(TMyData,''); //TODO: add filters to find specific records
 
   //browse trough the results
   for i:=0 to resultdata.count-1 do
@@ -73,6 +97,13 @@ begin
   for i:=0 to resultdata.count-1 do
     writeln(inttostr(i)+' '+TMyData(resultdata[i]).name);
 
+  readNote := myOrm.findone(TNote) as TNote;
+  writeln(readNote.Title);
+  writeln(readNote.Author.Name);
+
+  myOrm.Delete(myNote);
+  myOrm.Delete(myAuthor);
+
   myOrm.Free;
 
   UnLoadSQLite3(); //unload dynamic loaded sqlite3 lib
@@ -89,6 +120,12 @@ begin
   freeAndNil(founddata);
 
   freeAndNil(mydata);
+
+  freeAndNil(readnote);
+
+  freeAndNil(myauthor);
+  myNote.Author:=nil; //should not this be nil by freeandnil on myauthor?
+  freeAndNil(mynote);
 
   readln();
 end.
