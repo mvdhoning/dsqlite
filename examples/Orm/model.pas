@@ -11,7 +11,7 @@ uses sqlite3, classes, sysutils;
 
 type
   
-  TModel = class(TComponent)
+  TModel = class(TPersistent)
   private
     fguid: string;
   public

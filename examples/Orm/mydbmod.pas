@@ -20,9 +20,31 @@ type
     property Name: String read fname write fname;
   end;
 
+  TAuthor = class(TModel)
+  private
+    fname: String;
+  public
+  published
+    property Name: String read fname write fname;
+  end;
+
+  TNote = class(TModel)
+    private
+      ftitle: String;
+      ftext: String;
+      fauthor: TAuthor;
+    public
+    published
+      property Title: String read ftitle write ftitle;
+      property Text: String read ftext write ftext;
+      property Author: TAuthor read fauthor write fauthor;
+    end;
+
 implementation
 
 initialization
 RegisterClass(TMyData);
+RegisterClass(TAuthor);
+RegisterClass(TNote);
 
 end.
